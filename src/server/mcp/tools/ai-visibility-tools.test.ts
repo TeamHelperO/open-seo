@@ -140,6 +140,28 @@ describe("AI visibility assistant tools", () => {
     expect(textContent(result)).toContain("not configured");
     expect(mocks.service.runCheck).not.toHaveBeenCalled();
   });
+  it("accepts a self-hosted project ID and authorizes it before reading the tracker", async () => {
+    const selfhostProjectId = "proj-realwriteapp-com";
+    mocks.authorize.mockResolvedValue({
+      id: selfhostProjectId,
+      domain: "realwriteapp.com",
+    });
+    const args = z
+      .object(definitions.getAiVisibilityTrackerTool.config.inputSchema)
+      .parse({ projectId: selfhostProjectId });
+    const result = await definitions.getAiVisibilityTrackerTool.handler(
+      args,
+      context,
+    );
+    expect(result.structuredContent).toMatchObject({
+      status: "success",
+      meta: { projectId: selfhostProjectId },
+    });
+    expect(mocks.service.getTracker).toHaveBeenCalledWith({
+      projectId: selfhostProjectId,
+    });
+    expect(mocks.authorize).toHaveBeenCalled();
+  });
   it("keeps the same public evidence in text-only clients", async () => {
     const brands = [{ name: "Ahrefs", domain: "ahrefs.com", own: false }];
     mocks.service.getTracker.mockResolvedValue({ ...state, brands });
